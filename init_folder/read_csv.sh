@@ -1,0 +1,1 @@
+clickhouse-client --input_format_csv_skip_first_lines=1 --date_time_input_format=best_effort -q "insert into test_db.clients_info format CSV" < /docker-entrypoint-initdb.d/client_hostname.csv
