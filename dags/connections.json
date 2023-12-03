@@ -1,0 +1,12 @@
+{
+  "user_pg": {
+    "conn_type": "clickhouse",
+    "description": "",
+    "login": "default",
+    "password": "",
+    "host": "db",
+    "port": 8123,
+    "schema": "test_db",
+    "extra": ""
+  }
+}
