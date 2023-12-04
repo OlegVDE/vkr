@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS test_db.clients_info
 ENGINE = MergeTree()
 ORDER BY (client, hostname, alias_list);
 
-create table if not exist test_db.log_info(
+create table if not exists test_db.log_info(
 IP String,
 timestamp String,
 response Int16,
@@ -18,28 +18,16 @@ numbers Int32,
 device_name String,
 browser String
 )
-ENGINE = CollapsingMergeTree(sign)
+ENGINE = ReplacingMergeTree()
 ORDER BY (IP, timestamp);
 
-create view if not exist test_db.twin_table (
-IP String,
-timestamp String,
-response Int16,
-numbers Int32,
-device_name String,
-browser String,
-client String,
-hostname String,
-alias_list String,
-addres_list Nullable(String))
-ENGINE = MergeTree()
-order by (IP, timestamp)
+create view if not exists test_db.twin_table 
 as select * 
-from log_info li 
-join clients_info ci
+from test_db.log_info li 
+join test_db.clients_info ci
 on li.IP = ci.client;
 
-create view if not exist test_db.first_view as select * from (
+create view if not exists test_db.first_view as select * from (
 with sur_key as (select 
 generateUUIDv4() as surr_key, -- Суррогатный ключ устройства
 hostname, -- Название устройства
@@ -57,8 +45,8 @@ response as (select hostname,
 count() as not_200_sum -- Количество ответов сервера, отличных от 200 на данном устройстве
 from test_db.twin_table tt 
 where response != 200
-group by hostname
-order by hostname )
+group by tt.hostname
+order by tt.hostname )
 select 
 sur_key.surr_key,
 sur_key.hostname,
@@ -72,19 +60,20 @@ on sur_key.hostname = cli_info.hostname
 join response
 on sur_key.hostname = response.hostname);
 
-create view if not exist test_db.second_view as
+create view if not exists test_db.second_view as
 SELECT hostname, browser, 
 count(*) as brows_actions, 
 count(hostname) over (partition by hostname) as cnt_brws_on_ip,
 ((count(*)/(sum(count(*)) over (partition by hostname)))*100) as percent_by_browser_action
 from test_db.twin_table tt 
 group by hostname, browser 
---order by hostname; 
+--order by hostname
+; 
 
-create view if not exist test_db.third_view as
+create view if not exists test_db.third_view as
 select 
 response, 
-count() total__by_response
+count(*) total__by_response
 from test_db.twin_table tt 
---where response != 200
+-- where response != 200
 group by response;

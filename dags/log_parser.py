@@ -1,6 +1,7 @@
 import airflow
 from airflow.models import DAG
 from airflow.operators.python_operator import PythonOperator
+import pandas as pd
 import datetime as dt
 from datetime import datetime, timedelta
 import httpagentparser
@@ -16,7 +17,7 @@ dag = DAG(
     },
     description="parsing data from laccess.log and insert into db",
     schedule=timedelta(minutes=10),
-    start_date=datetime(2023, 10, 25),
+    start_date=datetime(2023, 12, 3),
     catchup=False,
     tags=["Final_project"],
 )
@@ -38,7 +39,7 @@ def get_data():
     d_dict['device_name'] = []
     d_dict['browser'] = []
     regex = '\"(.*?)\"|\[(.*?)\]|(\S+)'
-    with open('access.log', 'r') as file:
+    with open(r'/opt/airflow/dags/access.log', 'r') as file:
         for line in file:
             #         print(line)
             parsed_line = re.findall(r'\"(.*?)\"|\[(.*?)\]|(\S+)', line)
@@ -59,8 +60,8 @@ def get_data():
 
 
 def insert_data():
-    client = Client('localhost', settings={'use_numpy': True})
-    pd.read_csv('parsed_logs.csv', index_col=0)
+    client = Client('host.docker.internal', settings={'use_numpy': True})
+    data = pd.read_csv('parsed_logs.csv', index_col=0)
     client.insert_dataframe("""insert into test_db.log_info values""", data)
 
 
@@ -68,13 +69,13 @@ def insert_data():
 t1 = PythonOperator(
     task_id="get_data_from_access.log",
     provide_context=True,
-    python_callable=get_data(),
+    python_callable=get_data,
     dag=dag,
 )
-t1 = PythonOperator(
+t2 = PythonOperator(
     task_id="insert_log_data_to_db",
     provide_context=True,
-    python_callable=insert_data(),
+    python_callable=insert_data,
     dag=dag,
 )
 
